@@ -1,0 +1,184 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: # 手動実行（動作確認用。リリースは作らずアーティファクトのみ）
+
+permissions:
+  contents: write
+
+jobs:
+  # ============================================================
+  # macOS (Apple Silicon) — ffmpeg/ffprobe を sidecar 同梱した DMG
+  # ============================================================
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Download static FFmpeg (arm64 sidecars)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src-tauri/binaries
+          BASE="https://ffmpeg.martin-riedl.de"
+          FF_URL=$(curl -fsS "$BASE/" | grep -oE '/download/macos/arm64/[^"]*/ffmpeg\.zip'  | head -1 || true)
+          FP_URL=$(curl -fsS "$BASE/" | grep -oE '/download/macos/arm64/[^"]*/ffprobe\.zip' | head -1 || true)
+          if [ -n "$FF_URL" ] && [ -n "$FP_URL" ]; then
+            echo "source: martin-riedl.de"
+            curl -fsSL "$BASE$FF_URL" -o ffmpeg.zip
+            curl -fsSL "$BASE$FP_URL" -o ffprobe.zip
+          else
+            echo "source: osxexperts.net (fallback)"
+            curl -fsSL "https://www.osxexperts.net/ffmpeg81arm.zip"  -o ffmpeg.zip
+            curl -fsSL "https://www.osxexperts.net/ffprobe81arm.zip" -o ffprobe.zip
+          fi
+          unzip -oq ffmpeg.zip  -d ffbin_m
+          unzip -oq ffprobe.zip -d ffbin_p
+          FF=$(find ffbin_m -name ffmpeg  -type f | head -1)
+          FP=$(find ffbin_p -name ffprobe -type f | head -1)
+          cp "$FF" src-tauri/binaries/ffmpeg-aarch64-apple-darwin
+          cp "$FP" src-tauri/binaries/ffprobe-aarch64-apple-darwin
+          chmod +x src-tauri/binaries/ffmpeg-aarch64-apple-darwin src-tauri/binaries/ffprobe-aarch64-apple-darwin
+          src-tauri/binaries/ffprobe-aarch64-apple-darwin -version | head -1
+          src-tauri/binaries/ffmpeg-aarch64-apple-darwin  -version | head -1
+
+      - name: Build DMG (externalBin は CI のみ有効化)
+        shell: bash
+        run: |
+          npm run tauri build -- --bundles dmg \
+            --config '{"bundle":{"externalBin":["binaries/ffprobe","binaries/ffmpeg"]}}'
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then VER="${GITHUB_REF_NAME}"; else VER="dev-${GITHUB_SHA::7}"; fi
+          mkdir -p out
+          mv src-tauri/target/release/bundle/dmg/*.dmg "out/ffScope_${VER}_macos_arm64.dmg"
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: out/*.dmg
+          if-no-files-found: error
+
+  # ============================================================
+  # Windows (x64) — ポータブル ZIP（exe + ffmpeg/ffprobe 同梱）
+  # ============================================================
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Download static FFmpeg (win64, BtbN GPL build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src-tauri/binaries
+          curl -fsSL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip" -o ff.zip
+          unzip -q ff.zip -d ffwin
+          cp ffwin/*/bin/ffmpeg.exe  src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          cp ffwin/*/bin/ffprobe.exe src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe
+          src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe -version | head -1
+
+      - name: Build exe (bundle なし)
+        shell: bash
+        run: npm run tauri build -- --no-bundle
+
+      - name: Assemble portable ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then VER="${GITHUB_REF_NAME}"; else VER="dev-${GITHUB_SHA::7}"; fi
+          mkdir -p pkg/ffScope out
+          cp src-tauri/target/release/ffscope.exe          pkg/ffScope/ffScope.exe
+          cp src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe pkg/ffScope/ffprobe.exe
+          cp src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe  pkg/ffScope/ffmpeg.exe
+          cp LICENSE pkg/ffScope/LICENSE.txt
+          cd pkg && 7z a -tzip "../out/ffScope_${VER}_windows_x64.zip" ffScope >/dev/null
+          ls -lh ../out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: out/*.zip
+          if-no-files-found: error
+
+  # ============================================================
+  # GitHub Release 作成（タグ push 時のみ）
+  # ============================================================
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > notes.md <<'EOF'
+          ## ダウンロード
+
+          | OS | ファイル | 形式 |
+          |----|---------|------|
+          | macOS (Apple Silicon) | `ffScope_*_macos_arm64.dmg` | DMG（.app に ffmpeg/ffprobe 同梱） |
+          | Windows (x64) | `ffScope_*_windows_x64.zip` | ポータブル ZIP（exe + ffmpeg/ffprobe 同梱） |
+
+          ## インストール時の注意
+
+          **macOS**: 未署名のため初回は Gatekeeper に警告されます。
+          `アプリを右クリック → 開く`、またはターミナルで `xattr -cr /Applications/ffScope.app` を実行してください。
+
+          **Windows**: 展開してフォルダごと任意の場所に置き、`ffScope.exe` を実行してください。
+          WebView2 ランタイムが必要です（Windows 10/11 は標準搭載）。SmartScreen の警告は「詳細情報 → 実行」で回避できます。
+
+          ## 同梱している FFmpeg について
+
+          本配布物には解析エンジンとして FFmpeg（`ffmpeg` / `ffprobe`）の静的ビルドを同梱しています。
+          FFmpeg は GPL/LGPL でライセンスされています（本体アプリは MIT）。
+
+          - Windows ビルド提供元: [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)（GPL、libvmaf 含む）
+          - macOS ビルド提供元: [ffmpeg.martin-riedl.de](https://ffmpeg.martin-riedl.de/) / [osxexperts.net](https://www.osxexperts.net/)
+          - FFmpeg ソースコード: https://ffmpeg.org/download.html
+          EOF
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body_path: notes.md
+          generate_release_notes: true

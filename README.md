@@ -106,6 +106,25 @@ npm run tauri build -- --bundles app   # macOS で .app のみ素早く生成（
 （macOS: `.app` / `.dmg`、Windows: `.msi` / `.exe`、Linux: `.deb` / `.AppImage` / `.rpm`）。
 クロスコンパイルは基本不可のため、各 OS 向けの成果物はその OS 上でビルドしてください。
 
+## リリース（GitHub Actions 自動ビルド）
+
+`v*` タグを push すると [release.yml](.github/workflows/release.yml) が起動し、
+**ffmpeg / ffprobe の静的ビルドを sidecar 同梱**した配布物を自動生成して GitHub Release に添付します。
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+| OS | 成果物 | 同梱 FFmpeg の取得元 |
+|----|--------|---------------------|
+| macOS (Apple Silicon) | `ffScope_v*_macos_arm64.dmg` | [ffmpeg.martin-riedl.de](https://ffmpeg.martin-riedl.de/)（fallback: osxexperts.net） |
+| Windows (x64) | `ffScope_v*_windows_x64.zip`（ポータブル: exe + ffmpeg/ffprobe） | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds)（GPL・libvmaf 含む） |
+
+- ローカル開発ビルドには FFmpeg は同梱されません（`externalBin` は CI 実行時のみ `--config` で有効化）
+- 同梱される FFmpeg は **GPL/LGPL** です（本体アプリは MIT）。ライセンス表記とソース入手先は Release ノートに記載されます
+- 手動実行（workflow_dispatch）ではリリースを作らず、Actions のアーティファクトとして成果物を確認できます
+
 ## アプリアイコンの差し替え
 
 `logo/SVG/app-icon.svg`（アクセント色背景＋白ロゴ）を編集し、次のコマンドでアイコン一式を再生成します:
