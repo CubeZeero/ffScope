@@ -58,6 +58,46 @@ jobs:
           src-tauri/binaries/ffprobe-aarch64-apple-darwin -version | head -1
           src-tauri/binaries/ffmpeg-aarch64-apple-darwin  -version | head -1
 
+      # Apple Developer 署名・公証（Secrets が設定されている場合のみ有効化）
+      #   APPLE_CERTIFICATE          : Developer ID Application 証明書 (.p12) の base64
+      #   APPLE_CERTIFICATE_PASSWORD : .p12 のパスワード
+      #   APPLE_SIGNING_IDENTITY     : "Developer ID Application: 名前 (TEAMID)"
+      #   APPLE_API_ISSUER           : App Store Connect API の Issuer ID
+      #   APPLE_API_KEY              : 同 Key ID
+      #   APPLE_API_KEY_CONTENT      : 同 .p8 ファイルの中身
+      - name: Setup Apple code signing (if secrets present)
+        shell: bash
+        env:
+          CERT: ${{ secrets.APPLE_CERTIFICATE }}
+          CERT_PW: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          API_KEY: ${{ secrets.APPLE_API_KEY }}
+          API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+        run: |
+          set -euo pipefail
+          if [ -n "$CERT" ] && [ -n "$IDENTITY" ]; then
+            echo "signing: ENABLED"
+            {
+              echo "APPLE_CERTIFICATE=$CERT"
+              echo "APPLE_CERTIFICATE_PASSWORD=$CERT_PW"
+              echo "APPLE_SIGNING_IDENTITY=$IDENTITY"
+            } >> "$GITHUB_ENV"
+            if [ -n "$API_KEY_CONTENT" ] && [ -n "$API_ISSUER" ] && [ -n "$API_KEY" ]; then
+              echo "notarization: ENABLED"
+              printf '%s' "$API_KEY_CONTENT" > "$RUNNER_TEMP/AuthKey.p8"
+              {
+                echo "APPLE_API_ISSUER=$API_ISSUER"
+                echo "APPLE_API_KEY=$API_KEY"
+                echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8"
+              } >> "$GITHUB_ENV"
+            else
+              echo "notarization: skipped (API key secrets not set)"
+            fi
+          else
+            echo "signing: skipped (secrets not set) — ad-hoc 署名でビルドします"
+          fi
+
       - name: Build DMG (externalBin は CI のみ有効化)
         shell: bash
         run: |
@@ -161,8 +201,8 @@ jobs:
 
           ## インストール時の注意
 
-          **macOS**: 未署名のため初回は Gatekeeper に警告されます。
-          `アプリを右クリック → 開く`、またはターミナルで `xattr -cr /Applications/ffScope.app` を実行してください。
+          **macOS**: 署名・公証済みビルドはそのまま開けます。
+          未署名ビルドの場合のみ、初回は `アプリを右クリック → 開く`（または `xattr -cr /Applications/ffScope.app`）で Gatekeeper を回避してください。
 
           **Windows**: 展開してフォルダごと任意の場所に置き、`ffScope.exe` を実行してください。
           WebView2 ランタイムが必要です（Windows 10/11 は標準搭載）。SmartScreen の警告は「詳細情報 → 実行」で回避できます。
