@@ -4,9 +4,6 @@ import { humanDuration, saveFrame, thumbnail } from "./ffprobe";
 import { useT } from "./i18n";
 import { useToast } from "./toast";
 
-// 同一パス・時刻のプレビューを使い回すキャッシュ
-const previewCache = new Map<string, string>();
-
 export function FramePicker({
   path,
   duration,
@@ -30,31 +27,31 @@ export function FramePicker({
   const [saving, setSaving] = useState(false);
   const reqRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const previewWork = useRef<Promise<void>>(Promise.resolve());
 
   // スライダー操作に追従してプレビューを更新（デバウンス）
   useEffect(() => {
-    const key = `${path}@${time.toFixed(2)}`;
-    const cached = previewCache.get(key);
-    if (cached) {
-      setSrc(cached);
-      setPreviewLoading(false);
-      return;
-    }
     const myReq = ++reqRef.current;
     setPreviewLoading(true);
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      thumbnail(path, time, 640)
+      // Keep one decoder active. Queued obsolete slider positions are skipped before spawning.
+      previewWork.current = previewWork.current.then(async () => {
+        if (myReq !== reqRef.current) return;
+        await thumbnail(path, time, 640)
         .then((url) => {
-          previewCache.set(key, url);
           if (myReq === reqRef.current) setSrc(url);
         })
         .catch(() => {})
         .finally(() => {
           if (myReq === reqRef.current) setPreviewLoading(false);
         });
-    }, 180);
-    return () => clearTimeout(timerRef.current);
+      });
+    }, 80);
+    return () => {
+      clearTimeout(timerRef.current);
+      ++reqRef.current;
+    };
   }, [path, time]);
 
   async function doSave() {

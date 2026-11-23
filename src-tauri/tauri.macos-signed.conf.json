@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "createUpdaterArtifacts": true,
+    "macOS": {
+      "signingIdentity": "897057D6425A732CC2E1E9FC2AD78A02823397E1",
+      "hardenedRuntime": true
+    }
+  }
+}

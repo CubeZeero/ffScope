@@ -1,9 +1,10 @@
+import { ProgressBar } from "./ProgressBar";
 import { useRef, useState } from "react";
 import { integrityCheck, type Integrity } from "./ffprobe";
 import { useT } from "./i18n";
 import { useToast } from "./toast";
 
-const cache = new Map<string, Integrity>();
+const cache = new LruCache<string, Integrity>(32);
 
 export function IntegrityCheck({ path, duration }: { path: string; duration: number }) {
   const t = useT();
@@ -41,8 +42,6 @@ export function IntegrityCheck({ path, duration }: { path: string; duration: num
     }
   }
 
-  const pct = Math.round(Math.max(progress, 0) * 100);
-  const indeterminate = progress < 0;
 
   return (
     <section className="integrity">
@@ -62,19 +61,7 @@ export function IntegrityCheck({ path, duration }: { path: string; duration: num
         </div>
       )}
 
-      {loading && (
-        <div className="frame-progress">
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${indeterminate ? "indeterminate" : ""}`}
-              style={indeterminate ? undefined : { width: `${pct}%` }}
-            />
-          </div>
-          <span className="progress-label">
-            {indeterminate ? t("チェック中…", "Checking…") : `${pct}%`}
-          </span>
-        </div>
-      )}
+      {loading && <ProgressBar progress={progress} label={t("チェック中…", "Checking…")} />}
 
       {error && (
         <section className="error-box">
@@ -106,3 +93,4 @@ export function IntegrityCheck({ path, duration }: { path: string; duration: num
     </section>
   );
 }
+import { LruCache } from "./cache";

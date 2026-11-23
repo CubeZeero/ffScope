@@ -1,3 +1,4 @@
+import { ProgressBar } from "./ProgressBar";
 import { useRef, useState } from "react";
 import { timestampCheck, humanDuration, type TsResult } from "./ffprobe";
 import { useT } from "./i18n";
@@ -44,28 +45,20 @@ export function TimestampCheck({
     }
   }
 
-  const pct = Math.round(Math.max(progress, 0) * 100);
-  const indet = progress < 0;
 
   return (
     <section className="ts-check">
       <h3>{t("タイムスタンプ不連続チェック", "Timestamp discontinuity check")}</h3>
+      <p className="hint">{t(
+        "DTSの巻き戻りと、表示順・パケットの継続時間を考慮した大きな空白を確認します。BフレームによるPTSの前後や先頭の負のDTSは異常扱いしません。継続時間が不明な区間は空白を判定できません。",
+        "Checks DTS reversals and large uncovered gaps in presentation order using packet durations. B-frame PTS reordering and negative initial DTS are normal. Gaps cannot be assessed where durations are unknown."
+      )}</p>
       {!result && !loading && (
         <button className="primary-btn" onClick={run}>
           {t("チェックを実行", "Run check")}
         </button>
       )}
-      {loading && (
-        <div className="frame-progress">
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${indet ? "indeterminate" : ""}`}
-              style={indet ? undefined : { width: `${pct}%` }}
-            />
-          </div>
-          <span className="progress-label">{indet ? t("チェック中…", "Checking…") : `${pct}%`}</span>
-        </div>
-      )}
+      {loading && <ProgressBar progress={progress} label={t("チェック中…", "Checking…")} />}
       {result && !loading && (
         <>
           {result.issues.length === 0 ? (
@@ -99,6 +92,7 @@ export function TimestampCheck({
                   </tbody>
                 </table>
               </div>
+              {result.issues.length >= 200 && <p className="hint">{t("結果の表示は最大200件です。", "Results are limited to 200 issues.")}</p>}
             </>
           )}
           <button className="icon-btn ts-rerun" onClick={run}>

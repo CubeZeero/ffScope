@@ -9,7 +9,7 @@ const REPO_URL = "https://github.com/CubeZeero/ffScope";
 
 export function AboutModal({ onClose }: { onClose: () => void }) {
   const t = useT();
-  const [version, setVersion] = useState("1.0.0");
+  const [version, setVersion] = useState("1.1.0");
   const [tools, setTools] = useState<ToolInfo | null>(null);
 
   useEffect(() => {

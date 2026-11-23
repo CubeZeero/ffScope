@@ -1,12 +1,14 @@
 {
   "name": "ffscope",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:macos:signed": "node scripts/build-macos-signed.mjs",
+    "test": "node --test scripts/test-*.mjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },
@@ -14,11 +16,15 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
     "bootstrap-icons": "^1.13.1",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "uplot": "^1.6.32"
   },
   "devDependencies": {

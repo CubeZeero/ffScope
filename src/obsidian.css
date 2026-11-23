@@ -1,0 +1,113 @@
+/* Sculpted slate, rounded ink-black surfaces and a warm ember accent. */
+:root[data-style="obsidian"] {
+  --bg: #101316;
+  --panel: #08090b;
+  --panel-2: #1b1e23;
+  --border: #30353e;
+  --text: #f0efed;
+  --muted: #a4aab3;
+  --accent: #ff7956;
+  --accent-soft: rgba(255, 104, 64, 0.16);
+  --ok: #80c6ad;
+  --ng: #ffb572;
+  --error: #ff8787;
+  --warn-bg: rgba(255, 156, 83, 0.10);
+  --radius: 22px;
+  --obsidian-shadow: 0 14px 32px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  --obsidian-shell: linear-gradient(165deg, #a0a5ad 0%, #576476 20%, #2a394c 56%, #171b21 90%);
+}
+:root[data-style="obsidian"][data-theme="light"] {
+  --bg: #dcdedc;
+  --panel: #f7f5ef;
+  --panel-2: #eae7df;
+  --border: #cbc8c1;
+  --text: #232426;
+  --muted: #66676a;
+  --accent: #b73d1e;
+  --accent-soft: rgba(205, 74, 35, 0.11);
+  --ok: #256c53;
+  --ng: #995017;
+  --error: #b53037;
+  --warn-bg: rgba(176, 102, 45, 0.10);
+  --obsidian-shadow: 0 14px 32px rgba(49, 51, 55, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --obsidian-shell: linear-gradient(165deg, #f6f3eb 0%, #d7d9dc 30%, #b1bbc8 67%, #939eae 100%);
+}
+:root[data-style="obsidian"] body {
+  background-color: var(--bg);
+  background-image: var(--obsidian-shell);
+  background-attachment: fixed;
+  background-size: cover;
+}
+:root[data-style="obsidian"] .app {
+  background: transparent;
+  margin: 20px auto;
+  padding: 24px 28px 48px;
+  min-height: calc(100vh - 40px);
+}
+:root[data-style="obsidian"] .topbar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  padding: 18px 20px;
+  box-shadow: var(--obsidian-shadow);
+}
+:root[data-style="obsidian"] .brand h1 { letter-spacing: -0.6px; font-weight: 600; }
+:root[data-style="obsidian"] :is(.card, .stream-card, .slot, .chart-outer, .dropzone, .command-bar, .anomaly-candidate, .raw-json) {
+  background: var(--panel);
+  border-color: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--obsidian-shadow);
+}
+:root[data-style="obsidian"] .card { padding: 18px; }
+:root[data-style="obsidian"] .card-value { font-weight: 500; letter-spacing: -0.4px; }
+:root[data-style="obsidian"] :is(.mode-switch, .tabs) {
+  padding: 6px;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+}
+:root[data-style="obsidian"] :is(.mode-switch button, .tabs button) { border-radius: 18px; border: 1px solid transparent; }
+:root[data-style="obsidian"] :is(.mode-switch button.active, .tabs button.active) {
+  background: var(--panel-2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-style="obsidian"] :is(.theme-toggle, .icon-btn, .cs-nav-button, .chart-buttons button, .stream-picker button, .modal-foot button) {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+:root[data-style="obsidian"] :is(.theme-toggle, .icon-btn, .cs-nav-button, .chart-buttons button, .stream-picker button):hover:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+:root[data-style="obsidian"] :is(.chart-buttons button.active, .stream-picker button.active, .anomaly-candidate.selected) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-style="obsidian"] :is(.primary-btn, .modal-foot .primary-btn) {
+  background: linear-gradient(155deg, #ef643f, #bf3417);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 18px;
+  box-shadow: 0 5px 14px rgba(165, 47, 18, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+:root[data-style="obsidian"] :is(input:not([type="range"]):not([type="checkbox"]), select, textarea) {
+  background: var(--panel-2); color: var(--text); border-color: var(--border); border-radius: 12px;
+}
+:root[data-style="obsidian"] select option { background: var(--panel); color: var(--text); }
+:root[data-style="obsidian"] :is(.modal, .cs-viewer, .bitrate-viewer) {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+:root[data-style="obsidian"] .modal-backdrop { background: rgba(0, 0, 0, 0.62); }
+:root[data-style="obsidian"] :is(.cs-viewer, .bitrate-viewer)::backdrop { background: rgba(0, 0, 0, 0.62); }
+:root[data-style="obsidian"] :is(.cs-cell, .fp-preview, .cs-viewer-image) { border-radius: 18px; }
+@media (max-width: 640px) {
+  :root[data-style="obsidian"] .app { margin: 8px; padding: 16px 12px 32px; border-radius: 28px; }
+  :root[data-style="obsidian"] .topbar { padding: 14px; border-radius: 22px; flex-wrap: wrap; gap: 12px; }
+}

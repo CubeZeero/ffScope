@@ -1,9 +1,10 @@
+import { ProgressBar } from "./ProgressBar";
 import { useRef, useState } from "react";
 import { frameStatsParallel, type FrameStats } from "./ffprobe";
 import { useT } from "./i18n";
 import { useToast } from "./toast";
 
-const frameCache = new Map<string, FrameStats>();
+const frameCache = new LruCache<string, FrameStats>(64);
 
 export function FrameStatsPanel({
   path,
@@ -52,8 +53,6 @@ export function FrameStatsPanel({
     }
   }
 
-  const pct = Math.round(Math.max(progress, 0) * 100);
-  const indeterminate = progress < 0;
 
   return (
     <section className="frame-stats">
@@ -72,19 +71,7 @@ export function FrameStatsPanel({
         </div>
       )}
 
-      {loading && (
-        <div className="frame-progress">
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${indeterminate ? "indeterminate" : ""}`}
-              style={indeterminate ? undefined : { width: `${pct}%` }}
-            />
-          </div>
-          <span className="progress-label">
-            {indeterminate ? t("解析中…", "Analyzing…") : `${pct}%`}
-          </span>
-        </div>
-      )}
+      {loading && <ProgressBar progress={progress} label={t("解析中…", "Analyzing…")} />}
 
       {error && (
         <section className="error-box">
@@ -114,3 +101,4 @@ export function FrameStatsPanel({
     </section>
   );
 }
+import { LruCache } from "./cache";

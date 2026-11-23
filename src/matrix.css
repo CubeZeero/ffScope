@@ -1,0 +1,93 @@
+/* Quiet grayscale, instrument-like dot grids and soft pastel accents. */
+:root[data-style="matrix"] {
+  --bg: #17191a;
+  --panel: #232627;
+  --panel-2: #303435;
+  --border: #474c4d;
+  --text: #f0f1ed;
+  --muted: #b0b7b5;
+  --accent: #e1e6e1;
+  --accent-soft: rgba(225, 230, 225, 0.12);
+  --ok: #a7cdbb;
+  --ng: #ddc0a0;
+  --error: #f19897;
+  --warn-bg: rgba(221, 192, 160, 0.08);
+  --radius: 24px;
+  --matrix-dot: rgba(230, 237, 230, 0.14);
+  --matrix-button: #ecefe9;
+  --matrix-button-text: #141616;
+  --matrix-lilac: #383547;
+  --matrix-sage: #2c3d36;
+  --matrix-sand: #403b30;
+}
+:root[data-style="matrix"][data-theme="light"] {
+  --bg: #d5d9d7;
+  --panel: #e9eae6;
+  --panel-2: #dfe2de;
+  --border: #b9c0bb;
+  --text: #141716;
+  --muted: #59635e;
+  --accent: #202722;
+  --accent-soft: rgba(32, 39, 34, 0.08);
+  --ok: #35634e;
+  --ng: #795b2b;
+  --error: #b02e32;
+  --warn-bg: rgba(121, 91, 43, 0.08);
+  --matrix-dot: rgba(29, 45, 34, 0.16);
+  --matrix-button: #121614;
+  --matrix-button-text: #f4f6f1;
+  --matrix-lilac: #ddd7ef;
+  --matrix-sage: #ccdcd1;
+  --matrix-sand: #e2dccb;
+}
+:root[data-style="matrix"] body { background: var(--bg); }
+:root[data-style="matrix"] .brand h1 { letter-spacing: -0.8px; font-weight: 700; }
+:root[data-style="matrix"] .topbar {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background-color: var(--panel);
+  background-image: radial-gradient(circle, var(--matrix-dot) 0.7px, transparent 1px);
+  background-size: 7px 7px;
+}
+:root[data-style="matrix"] :is(.card, .stream-card, .chart-outer, .command-bar, .slot, .anomaly-candidate, .raw-json) {
+  background: var(--panel); border-color: var(--border); border-radius: var(--radius); box-shadow: none;
+}
+:root[data-style="matrix"] .summary-card { padding: 18px; }
+:root[data-style="matrix"] .summary-card:nth-child(3n+1) { background: var(--matrix-sand); }
+:root[data-style="matrix"] .summary-card:nth-child(3n+2) { background: var(--matrix-lilac); }
+:root[data-style="matrix"] .summary-card:nth-child(3n) { background: var(--matrix-sage); }
+:root[data-style="matrix"] .card-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+:root[data-style="matrix"] .dropzone {
+  background-color: var(--panel);
+  background-image: radial-gradient(circle, var(--matrix-dot) 0.7px, transparent 1px);
+  background-size: 8px 8px;
+  border: 1px solid var(--border); border-radius: 28px;
+}
+:root[data-style="matrix"] :is(.mode-switch, .tabs) {
+  padding: 6px; gap: 6px; border: 1px solid var(--border); border-radius: 28px; background: var(--panel-2);
+}
+:root[data-style="matrix"] :is(.mode-switch button, .tabs button) { border-radius: 22px; border: 1px solid transparent; }
+:root[data-style="matrix"] :is(.mode-switch button.active, .tabs button.active, .chart-buttons button.active, .stream-picker button.active) {
+  background: var(--matrix-button); color: var(--matrix-button-text); border-color: transparent;
+}
+:root[data-style="matrix"] :is(.theme-toggle, .icon-btn, .cs-nav-button, .chart-buttons button, .stream-picker button, .modal-foot button) {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 24px; box-shadow: none;
+}
+:root[data-style="matrix"] :is(.theme-toggle, .icon-btn, .cs-nav-button, .chart-buttons button, .stream-picker button):hover:not(:disabled) {
+  border-color: var(--accent); background: var(--accent-soft);
+}
+:root[data-style="matrix"] :is(.primary-btn, .modal-foot .primary-btn) {
+  background: var(--matrix-button); color: var(--matrix-button-text); border: 1px solid transparent; border-radius: 24px; box-shadow: none;
+}
+:root[data-style="matrix"] .anomaly-candidate.selected { background: var(--accent-soft); border-color: var(--accent); }
+:root[data-style="matrix"] :is(input:not([type="range"]):not([type="checkbox"]), select, textarea) {
+  background: var(--panel-2); color: var(--text); border-color: var(--border); border-radius: 16px;
+}
+:root[data-style="matrix"] select option { background: var(--panel); color: var(--text); }
+:root[data-style="matrix"] :is(.modal, .cs-viewer, .bitrate-viewer) {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.20);
+}
+:root[data-style="matrix"] :is(.cs-cell, .fp-preview, .cs-viewer-image) { border-radius: 20px; }
+:root[data-style="matrix"] .modal-backdrop { background: rgba(20, 25, 22, 0.45); }
+:root[data-style="matrix"] :is(.cs-viewer, .bitrate-viewer)::backdrop { background: rgba(20, 25, 22, 0.45); }

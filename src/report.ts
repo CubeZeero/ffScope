@@ -1,5 +1,3 @@
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import {
   basename,
   humanBitrate,
@@ -103,7 +101,10 @@ ${metaHtml}
 
 // ===================== PDF =====================
 // 注: jsPDF の標準フォントは日本語非対応のため、ラベルは英語で出力する。
-export function buildPdf(data: FfprobeData, path: string): Uint8Array {
+export async function buildPdf(data: FfprobeData, path: string): Promise<Uint8Array> {
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"), import("jspdf-autotable"),
+  ]);
   const f = data.format;
   const streams = data.streams ?? [];
   const doc = new jsPDF({ unit: "pt", format: "a4" });

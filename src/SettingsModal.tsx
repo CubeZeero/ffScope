@@ -1,12 +1,10 @@
 import { useState } from "react";
+import { AiSettings } from "./AiSettings";
+import { UpdateSettings } from "./UpdateSettings";
 import { useT, type Lang } from "./i18n";
-
-export interface Settings {
-  lang: Lang;
-  thumbPercent: number;
-  ffprobePath: string;
-  ffmpegPath: string;
-}
+import type { Settings } from "./preferences";
+export type { Settings } from "./preferences";
+import { composeTheme, isDarkTheme, themeStyle, type Theme, type ThemeMode, type ThemeStyle } from "./theme";
 
 export function SettingsModal({
   settings,
@@ -16,19 +14,22 @@ export function SettingsModal({
   onClose,
 }: {
   settings: Settings;
-  theme: "dark" | "light";
-  onChangeTheme: (t: "dark" | "light") => void;
+  theme: Theme;
+  onChangeTheme: (t: Theme) => void;
   onSave: (s: Settings) => void;
   onClose: () => void;
 }) {
   const t = useT();
   const [draft, setDraft] = useState<Settings>(settings);
+  const [section, setSection] = useState<"general" | "ai" | "updates">("general");
+  const style = themeStyle(theme);
+  const mode: ThemeMode = isDarkTheme(theme) ? "dark" : "light";
 
   const upd = (patch: Partial<Settings>) => setDraft((d) => ({ ...d, ...patch }));
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{t("設定", "Settings")}</h2>
           <button className="icon-btn" onClick={onClose} title={t("閉じる", "Close")}>
@@ -36,22 +37,37 @@ export function SettingsModal({
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="settings-sections" role="tablist" aria-label={t("設定項目", "Settings sections")}>
+          <button type="button" role="tab" id="settings-general-tab" aria-selected={section === "general"} aria-controls="settings-general-panel" className={section === "general" ? "active" : ""} onClick={() => setSection("general")}>{t("一般", "General")}</button>
+          <button type="button" role="tab" id="settings-ai-tab" aria-selected={section === "ai"} aria-controls="settings-ai-panel" className={section === "ai" ? "active" : ""} onClick={() => setSection("ai")}><i className="bi bi-key" /> {t("AI・APIキー", "AI & API keys")}</button>
+          <button type="button" role="tab" id="settings-updates-tab" aria-selected={section === "updates"} aria-controls="settings-updates-panel" className={section === "updates" ? "active" : ""} onClick={() => setSection("updates")}><i className="bi bi-arrow-repeat" /> {t("更新", "Updates")}</button>
+        </div>
+        {section === "general" && <div className="modal-body" role="tabpanel" id="settings-general-panel" aria-labelledby="settings-general-tab">
           <label className="field">
             <span>{t("言語", "Language")}</span>
-            <select value={draft.lang} onChange={(e) => upd({ lang: e.target.value as Lang })}>
+            <span className="settings-select-wrap"><select value={draft.lang} onChange={(e) => upd({ lang: e.target.value as Lang })}>
               <option value="ja">日本語</option>
               <option value="en">English</option>
-            </select>
+            </select></span>
           </label>
 
           <label className="field">
             <span>{t("テーマ", "Theme")}</span>
-            <select value={theme} onChange={(e) => onChangeTheme(e.target.value as "dark" | "light")}>
+            <span className="settings-select-wrap"><select value={style} onChange={(e) => onChangeTheme(composeTheme(e.target.value as ThemeStyle, mode))}>
+              <option value="classic">{t("クラシック", "Classic")}</option>
+              <option value="glass">Liquid Glass</option>
+              <option value="obsidian">Obsidian</option>
+              <option value="matrix">Dot Matrix</option>
+            </select></span>
+          </label>
+          <label className="field">
+            <span>{t("カラーモード", "Color mode")}</span>
+            <span className="settings-select-wrap"><select value={mode} onChange={(e) => onChangeTheme(composeTheme(style, e.target.value as ThemeMode))}>
               <option value="dark">{t("ダーク", "Dark")}</option>
               <option value="light">{t("ライト", "Light")}</option>
-            </select>
+            </select></span>
           </label>
+          <p className="hint">{t("テーマは即時反映されます。上部の切替ボタンは、選択したスタイルのダーク／ライトを切り替えます。", "Themes apply immediately. The top bar button switches dark/light within the selected style.")}</p>
 
           <label className="field">
             <span>{t("サムネイル位置", "Thumbnail position")}</span>
@@ -92,8 +108,10 @@ export function SettingsModal({
               "Leave a path empty to fall back to auto-detect. Changes apply to the next analysis."
             )}
           </p>
-        </div>
+        </div>}
 
+        {section === "ai" && <div className="modal-body" role="tabpanel" id="settings-ai-panel" aria-labelledby="settings-ai-tab"><AiSettings /></div>}
+        {section === "updates" && <div className="modal-body" role="tabpanel" id="settings-updates-panel" aria-labelledby="settings-updates-tab"><UpdateSettings /></div>}
         <div className="modal-foot">
           <button onClick={onClose}>{t("キャンセル", "Cancel")}</button>
           <button className="primary-btn" onClick={() => onSave(draft)}>

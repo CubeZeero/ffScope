@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { BitrateSeries } from "./ffprobe";
 import { useT } from "./i18n";
 
@@ -14,7 +15,7 @@ function percentile(sorted: number[], p: number): number {
 
 export function BitrateStats({ series }: { series: BitrateSeries }) {
   const t = useT();
-  const sorted = [...series.bps].sort((a, b) => a - b);
+  const sorted = useMemo(() => [...series.bps].sort((a, b) => a - b), [series.bps]);
   const median = percentile(sorted, 50);
   const p95 = percentile(sorted, 95);
   const p99 = percentile(sorted, 99);

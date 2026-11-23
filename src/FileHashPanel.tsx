@@ -1,9 +1,10 @@
+import { ProgressBar } from "./ProgressBar";
 import { useRef, useState } from "react";
 import { fileHash, type FileHash } from "./ffprobe";
 import { useT } from "./i18n";
 import { useToast } from "./toast";
 
-const cache = new Map<string, FileHash>();
+const cache = new LruCache<string, FileHash>(64);
 
 export function FileHashPanel({ path }: { path: string }) {
   const t = useT();
@@ -35,8 +36,6 @@ export function FileHashPanel({ path }: { path: string }) {
     }
   }
 
-  const pct = Math.round(Math.max(progress, 0) * 100);
-  const indet = progress < 0;
 
   async function copy(text: string) {
     try {
@@ -55,17 +54,7 @@ export function FileHashPanel({ path }: { path: string }) {
           {t("MD5 / SHA-256 を計算", "Compute MD5 / SHA-256")}
         </button>
       )}
-      {loading && (
-        <div className="frame-progress">
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${indet ? "indeterminate" : ""}`}
-              style={indet ? undefined : { width: `${pct}%` }}
-            />
-          </div>
-          <span className="progress-label">{indet ? t("計算中…", "Hashing…") : `${pct}%`}</span>
-        </div>
-      )}
+      {loading && <ProgressBar progress={progress} label={t("計算中…", "Hashing…")} />}
       {error && <p className="hint">{error}</p>}
       {hash && (
         <table className="kv">
@@ -88,3 +77,4 @@ export function FileHashPanel({ path }: { path: string }) {
     </section>
   );
 }
+import { LruCache } from "./cache";

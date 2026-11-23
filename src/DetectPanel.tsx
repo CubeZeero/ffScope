@@ -1,3 +1,4 @@
+import { ProgressBar } from "./ProgressBar";
 import { useRef, useState } from "react";
 import {
   detectBlackSilence,
@@ -9,22 +10,6 @@ import {
 } from "./ffprobe";
 import { useT } from "./i18n";
 import { useToast } from "./toast";
-
-function ProgressBar({ progress, label }: { progress: number; label: string }) {
-  const indet = progress < 0;
-  const pct = Math.round(Math.max(progress, 0) * 100);
-  return (
-    <div className="frame-progress">
-      <div className="progress-track">
-        <div
-          className={`progress-fill ${indet ? "indeterminate" : ""}`}
-          style={indet ? undefined : { width: `${pct}%` }}
-        />
-      </div>
-      <span className="progress-label">{indet ? label : `${pct}%`}</span>
-    </div>
-  );
-}
 
 export function DetectPanel({
   path,

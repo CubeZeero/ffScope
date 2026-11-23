@@ -28,3 +28,6 @@ dist-ssr
 
 # temp files
 *.tmp
+
+# Local updater signing key. Never commit private signing material.
+/.signing/

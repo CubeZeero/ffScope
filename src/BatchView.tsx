@@ -4,16 +4,11 @@ import {
   humanBytes,
   humanDuration,
   type FfprobeData,
-  type ProbeResult,
 } from "./ffprobe";
 import { useT } from "./i18n";
 
-export interface BatchItem {
-  path: string;
-  result: ProbeResult | null;
-  error: string | null;
-  loading: boolean;
-}
+import type { FileState } from "./file-state";
+export type BatchItem = FileState;
 
 function videoStream(d: FfprobeData) {
   return (d.streams ?? []).find((s) => s.codec_type === "video");

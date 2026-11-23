@@ -14,10 +14,15 @@ export function useLang(): Lang {
 /** コンポーネント内で使う翻訳フック。const t = useT(); t("解析", "Analyze") */
 export function useT(): T {
   const lang = useContext(LangContext);
-  return (ja, en) => (lang === "ja" ? ja : en);
+  return TRANSLATORS[lang];
 }
+
+const TRANSLATORS: Record<Lang, T> = {
+  ja: (ja) => ja,
+  en: (_ja, en) => en,
+};
 
 /** 非フックの文脈で使う翻訳関数を生成。 */
 export function makeT(lang: Lang): T {
-  return (ja, en) => (lang === "ja" ? ja : en);
+  return TRANSLATORS[lang];
 }

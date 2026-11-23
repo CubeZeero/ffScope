@@ -1,12 +1,13 @@
+import { ProgressBar } from "./ProgressBar";
 import { useEffect, useRef, useState } from "react";
 import { loudness, spectrogram, waveform, type Loudness, type Stream } from "./ffprobe";
 import { useT } from "./i18n";
 import { useToast } from "./toast";
 
 // path#index → 測定結果 のキャッシュ（測定は重いので再実行を避ける）
-const loudnessCache = new Map<string, Loudness>();
-const waveformCache = new Map<string, string>();
-const spectrogramCache = new Map<string, string>();
+const loudnessCache = new LruCache<string, Loudness>(64);
+const waveformCache = new LruCache<string, string>(12);
+const spectrogramCache = new LruCache<string, string>(12);
 
 function num(s: string): number {
   const n = parseFloat(s);
@@ -38,18 +39,19 @@ export function LoudnessTab({
   const reqRef = useRef(0);
 
   async function measure(idx: number) {
+    const myReq = ++reqRef.current;
     setStreamIndex(idx);
     setError(null);
     const key = `${path}#${idx}`;
     const cached = loudnessCache.get(key);
     if (cached) {
       setResult(cached);
+      setLoading(false);
       return;
     }
     setResult(null);
     setLoading(true);
     setProgress(0);
-    const myReq = ++reqRef.current;
     try {
       const r = await loudness(path, idx, duration, (p) => {
         if (myReq === reqRef.current) setProgress(p);
@@ -108,21 +110,7 @@ export function LoudnessTab({
         </button>
       )}
 
-      {loading && (
-        <div className="frame-progress">
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${progress < 0 ? "indeterminate" : ""}`}
-              style={progress < 0 ? undefined : { width: `${Math.round(Math.max(progress, 0) * 100)}%` }}
-            />
-          </div>
-          <span className="progress-label">
-            {progress < 0
-              ? t("測定中…", "Measuring…")
-              : `${Math.round(Math.max(progress, 0) * 100)}%`}
-          </span>
-        </div>
-      )}
+      {loading && <ProgressBar progress={progress} label={t("測定中…", "Measuring…")} />}
       {error && (
         <section className="error-box">
           <strong>{t("エラー", "Error")}</strong>
@@ -279,3 +267,4 @@ function Spectrogram({ path, streamIndex }: { path: string; streamIndex: number 
     </div>
   );
 }
+import { LruCache } from "./cache";

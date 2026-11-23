@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ffScope",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "identifier": "com.cubezeero.ffscope",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -23,6 +23,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": false,
     "targets": "all",
     "publisher": "CubeZeero",
     "copyright": "© 2026 CubeZeero",
@@ -37,5 +38,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI5NzBCOTkzNDI1NTEwRjYKUldUMkVGVkNrN2x3S2IwZW9kUmVYblVrV3F1bXBxRnd4dUJZRUV0ZkxaSGJ6MUttRy96TTl4SUEK",
+      "endpoints": ["https://github.com/CubeZeero/ffScope/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
   }
 }

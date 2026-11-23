@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { thumbnail } from "./ffprobe";
 
-const cache = new Map<string, string>();
+const cache = new LruCache<string, string>(12);
 
 /** 静止画のプレビュー表示（ffmpeg で1フレーム＝画像そのものを取得）。 */
 export function ImagePreview({ path }: { path: string }) {
@@ -9,6 +9,8 @@ export function ImagePreview({ path }: { path: string }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    setError(false);
+    setSrc(cache.get(path) ?? null);
     if (cache.has(path)) {
       setSrc(cache.get(path)!);
       return;
@@ -40,3 +42,4 @@ export function ImagePreview({ path }: { path: string }) {
     </section>
   );
 }
+import { LruCache } from "./cache";

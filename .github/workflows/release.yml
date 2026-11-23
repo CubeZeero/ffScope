@@ -14,12 +14,15 @@ jobs:
   # ============================================================
   build-macos:
     runs-on: macos-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
@@ -30,6 +33,11 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Require update signing key
+        shell: bash
+        run: |
+          test -n "$TAURI_SIGNING_PRIVATE_KEY" || { echo "Configure TAURI_SIGNING_PRIVATE_KEY in repository Actions secrets."; exit 1; }
 
       - name: Download static FFmpeg (arm64 sidecars)
         shell: bash
@@ -58,14 +66,24 @@ jobs:
           src-tauri/binaries/ffprobe-aarch64-apple-darwin -version | head -1
           src-tauri/binaries/ffmpeg-aarch64-apple-darwin  -version | head -1
 
-      # Apple Developer 署名・公証（Secrets が設定されている場合のみ有効化）
+      - name: Test and check macOS build
+        env:
+          FFMPEG_PATH: ${{ github.workspace }}/src-tauri/binaries/ffmpeg-aarch64-apple-darwin
+          FFPROBE_PATH: ${{ github.workspace }}/src-tauri/binaries/ffprobe-aarch64-apple-darwin
+        run: |
+          npm test
+          npm run build
+          cargo test --manifest-path src-tauri/Cargo.toml --lib
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      # Developer ID署名は必須。公証はAPIキーが登録されている場合に実行。
       #   APPLE_CERTIFICATE          : Developer ID Application 証明書 (.p12) の base64
       #   APPLE_CERTIFICATE_PASSWORD : .p12 のパスワード
       #   APPLE_SIGNING_IDENTITY     : "Developer ID Application: 名前 (TEAMID)"
       #   APPLE_API_ISSUER           : App Store Connect API の Issuer ID
       #   APPLE_API_KEY              : 同 Key ID
       #   APPLE_API_KEY_CONTENT      : 同 .p8 ファイルの中身
-      - name: Setup Apple code signing (if secrets present)
+      - name: Setup Apple code signing
         shell: bash
         env:
           CERT: ${{ secrets.APPLE_CERTIFICATE }}
@@ -77,6 +95,14 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$CERT" ] && [ -n "$IDENTITY" ]; then
+            python3 - <<'PY'
+          import os, re
+          identity = os.environ["IDENTITY"]
+          display_name = re.sub(r" \([A-Z0-9]+\)$", "", identity.split(": ", 1)[-1])
+          for value in (identity, display_name):
+              if value:
+                  print("::add-mask::" + value)
+          PY
             echo "signing: ENABLED"
             {
               echo "APPLE_CERTIFICATE=$CERT"
@@ -95,14 +121,17 @@ jobs:
               echo "notarization: skipped (API key secrets not set)"
             fi
           else
-            echo "signing: skipped (secrets not set) — ad-hoc 署名でビルドします"
+            echo "Developer ID signing is required for macOS update releases. Configure APPLE_CERTIFICATE and APPLE_SIGNING_IDENTITY."
+            exit 1
           fi
 
       - name: Build DMG (externalBin は CI のみ有効化)
         shell: bash
         run: |
-          npm run tauri build -- --bundles dmg \
-            --config '{"bundle":{"externalBin":["binaries/ffprobe","binaries/ffmpeg"]}}'
+          npm run tauri build -- --bundles app,dmg \
+            --config '{"bundle":{"createUpdaterArtifacts":true,"externalBin":["binaries/ffprobe","binaries/ffmpeg"]}}'
+          codesign --verify --deep --strict src-tauri/target/release/bundle/macos/ffScope.app
+          codesign --verify --strict -R='identifier "com.cubezeero.ffscope" and anchor apple generic and certificate leaf[subject.OU] = "BVC35LQRJR" and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' src-tauri/target/release/bundle/macos/ffScope.app
 
       - name: Rename artifact
         shell: bash
@@ -111,12 +140,14 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then VER="${GITHUB_REF_NAME}"; else VER="dev-${GITHUB_SHA::7}"; fi
           mkdir -p out
           mv src-tauri/target/release/bundle/dmg/*.dmg "out/ffScope_${VER}_macos_arm64.dmg"
+          cp src-tauri/target/release/bundle/macos/ffScope.app.tar.gz "out/ffScope_${VER}_macos_arm64.app.tar.gz"
+          cp src-tauri/target/release/bundle/macos/ffScope.app.tar.gz.sig "out/ffScope_${VER}_macos_arm64.app.tar.gz.sig"
           ls -lh out
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: out/*.dmg
+          path: out/*
           if-no-files-found: error
 
   # ============================================================
@@ -124,12 +155,15 @@ jobs:
   # ============================================================
   build-windows:
     runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable
@@ -140,6 +174,11 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Require update signing key
+        shell: bash
+        run: |
+          test -n "$TAURI_SIGNING_PRIVATE_KEY" || { echo "Configure TAURI_SIGNING_PRIVATE_KEY in repository Actions secrets."; exit 1; }
 
       - name: Download static FFmpeg (win64, BtbN GPL build)
         shell: bash
@@ -152,9 +191,22 @@ jobs:
           cp ffwin/*/bin/ffprobe.exe src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe
           src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe -version | head -1
 
-      - name: Build exe (bundle なし)
+      - name: Test and check Windows build
         shell: bash
-        run: npm run tauri build -- --no-bundle
+        env:
+          FFMPEG_PATH: ${{ github.workspace }}/src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
+          FFPROBE_PATH: ${{ github.workspace }}/src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe
+        run: |
+          npm test
+          npm run build
+          cargo test --manifest-path src-tauri/Cargo.toml --lib
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build exe and signed updater installer
+        shell: bash
+        run: |
+          npm run tauri build -- --bundles nsis \
+            --config '{"bundle":{"createUpdaterArtifacts":true,"externalBin":["binaries/ffprobe","binaries/ffmpeg"],"windows":{"nsis":{"installMode":"currentUser"}}}}'
 
       - name: Assemble portable ZIP
         shell: bash
@@ -166,13 +218,16 @@ jobs:
           cp src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe pkg/ffScope/ffprobe.exe
           cp src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe  pkg/ffScope/ffmpeg.exe
           cp LICENSE pkg/ffScope/LICENSE.txt
+          touch pkg/ffScope/ffscope-portable.marker
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe "out/ffScope_${VER}_windows_x64_setup.exe"
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe.sig "out/ffScope_${VER}_windows_x64_setup.exe.sig"
           cd pkg && 7z a -tzip "../out/ffScope_${VER}_windows_x64.zip" ffScope >/dev/null
           ls -lh ../out
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-zip
-          path: out/*.zip
+          path: out/*
           if-no-files-found: error
 
   # ============================================================
@@ -183,10 +238,17 @@ jobs:
     needs: [build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
+      - name: Generate signed-update manifest
+        run: node scripts/generate-update-manifest.mjs dist
 
       - name: Write release notes
         shell: bash
@@ -198,6 +260,13 @@ jobs:
           |----|---------|------|
           | macOS (Apple Silicon) | `ffScope_*_macos_arm64.dmg` | DMG（.app に ffmpeg/ffprobe 同梱） |
           | Windows (x64) | `ffScope_*_windows_x64.zip` | ポータブル ZIP（exe + ffmpeg/ffprobe 同梱） |
+          | Windows (x64) | `ffScope_*_windows_x64_setup.exe` | インストーラー（アプリ内自動更新対応） |
+
+          ## アプリ内更新
+
+          「設定 → 更新 → 更新を確認」から新バージョンを確認できます。
+          macOS と Windows インストーラー版に対応します。Windows ポータブルZIPは手動更新です。
+          `latest.json`、`.app.tar.gz`、`.sig` は自動更新用なので、通常は手動で開く必要はありません。
 
           ## インストール時の注意
 
@@ -216,9 +285,14 @@ jobs:
           - macOS ビルド提供元: [ffmpeg.martin-riedl.de](https://ffmpeg.martin-riedl.de/) / [osxexperts.net](https://www.osxexperts.net/)
           - FFmpeg ソースコード: https://ffmpeg.org/download.html
           EOF
+          if [ -f "docs/releases/${GITHUB_REF_NAME}.md" ]; then
+            cp "docs/releases/${GITHUB_REF_NAME}.md" notes.md
+          fi
 
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           body_path: notes.md
           generate_release_notes: true
+          draft: true
+          fail_on_unmatched_files: true

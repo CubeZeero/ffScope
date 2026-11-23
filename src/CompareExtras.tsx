@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
   basename,
@@ -114,13 +114,13 @@ export function CompareExtras({
   const tlReq = useRef(0);
 
   // 「変化なし」の基準（下位10パーセンタイル）とレンジを算出
-  const tlStats = (() => {
+  const tlStats = useMemo(() => {
     if (!timeline || !timeline.mag.length) return null;
     const sorted = [...timeline.mag].sort((a, b) => a - b);
     const floor = sorted[Math.floor(sorted.length * 0.1)] ?? sorted[0];
     const range = Math.max(timeline.max - floor, 1e-6);
     return { floor, range };
-  })();
+  }, [timeline]);
 
   async function scanTimeline() {
     setTlLoading(true);
